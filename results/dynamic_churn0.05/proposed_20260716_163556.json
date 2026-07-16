@@ -1,0 +1,29 @@
+{
+  "method": "proposed",
+  "gamma": 0.1,
+  "decay": true,
+  "churn_strength": 0.05,
+  "trials": [
+    {
+      "user_action": 8910,
+      "match": 423,
+      "churned": 339
+    },
+    {
+      "user_action": 9021,
+      "match": 429,
+      "churned": 345
+    },
+    {
+      "user_action": 9228,
+      "match": 417,
+      "churned": 336
+    }
+  ],
+  "average": {
+    "user_action": 9053.0,
+    "match": 423.0,
+    "churned": 340.0
+  },
+  "execution_time": 8.00846552848816
+}

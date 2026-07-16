@@ -1,0 +1,29 @@
+{
+  "method": "surrogate",
+  "gamma": 10.0,
+  "decay": true,
+  "churn_strength": 0.05,
+  "trials": [
+    {
+      "user_action": 11016,
+      "match": 379,
+      "churned": 332
+    },
+    {
+      "user_action": 11343,
+      "match": 321,
+      "churned": 373
+    },
+    {
+      "user_action": 11031,
+      "match": 349,
+      "churned": 368
+    }
+  ],
+  "average": {
+    "user_action": 11130.0,
+    "match": 349.6666666666667,
+    "churned": 357.6666666666667
+  },
+  "execution_time": 7.99946928024292
+}

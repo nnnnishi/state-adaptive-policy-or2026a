@@ -1,0 +1,29 @@
+{
+  "method": "greedy",
+  "gamma": 0.1,
+  "decay": false,
+  "churn_strength": 0.0,
+  "trials": [
+    {
+      "user_action": 8857,
+      "match": 416,
+      "churned": 0
+    },
+    {
+      "user_action": 8625,
+      "match": 428,
+      "churned": 0
+    },
+    {
+      "user_action": 8603,
+      "match": 418,
+      "churned": 0
+    }
+  ],
+  "average": {
+    "user_action": 8695.0,
+    "match": 420.6666666666667,
+    "churned": 0.0
+  },
+  "execution_time": 7.7734973430633545
+}
