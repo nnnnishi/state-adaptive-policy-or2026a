@@ -4,17 +4,20 @@
 """
 価値反復（有限ホライズンの後ろ向き帰納法）による最適価値関数の計算（本研究のコア）
 
-マッチ成立を吸収状態とする MDP の価値関数 V_h(F, R) を、
+離脱のみを吸収状態とする MDP の価値関数 V_h(F, R) を、
 残りホライズン h = 0..EXPERIMENT_STEPS について計算する。
-V_h(F, R) は「状態 (F, R) から最適方策に従ったとき、残り h ステップ以内に
-マッチ成立へ至る確率」であり、目的関数（マッチ率）と厳密に一致する。
+1 日あたりの報酬は sum_{j in J'} P_user(j) P_comp(j)（行動時点で最終的な
+マッチ成立の期待値を計上する）であり、V_h(F, R) は計画期間内の
+累積マッチング期待数を表す。応募から成立までのリードタイムにより
+行動時点で成立可否を観測できないため、マッチは吸収状態とせず、
+期待値の線形性に基づき行動起点で報酬を計上する（論文 3.1-3.2 節）。
 
-ベルマン方程式（TOP_K = 1、候補集合 J はステップごとに再抽選）:
-    V_h(F, R) = E_J [ max_{j in J} { m_j
-                  + (1 - c) (a_j - m_j) V_{h-1}(F+1, 0)
-                  + (1 - c) (1 - a_j)  V_{h-1}(F, R+1) } ]
+ベルマン方程式（候補集合 J はステップごとに再抽選）:
+    V_h(F, R) = E_J [ max_{J'} { sum_{j in J'} a_j P_comp(j)
+                  + (1 - c) Pany(J') V_{h-1}(F+1, 0)
+                  + (1 - c) (1 - Pany(J')) V_{h-1}(F, R+1) } ]
     a_j = P_user(j) * s(F, R)  （動的環境。静的環境では a_j = P_user(j)）
-    m_j = a_j * P_comp(j)
+    Pany(J') = 1 - prod_{j in J'}(1 - a_j)（TOP_K = 1 では a_j に一致）
     c   = P_churn(F, R)
 
 候補集合の分布は JSAI 2026 版のデータ生成と同一
@@ -84,7 +87,7 @@ def compute_value_tables(
 
     Returns:
         V: shape (horizon + 1, 101, 101) の float32 配列。
-           V[h, F, R] = 残り h ステップでのマッチ確率（V[0] = 0）
+           V[h, F, R] = 残り h ステップでの累積マッチング期待数（V[0] = 0）
     """
     s_grid = state_score_grid()                      # (101, 101)
     c_grid = churn_grid(churn_strength, s_grid)      # (101, 101)
@@ -112,14 +115,16 @@ def compute_value_tables(
         va = v_prev[f_next, 0].reshape(-1)     # V_{h-1}(F+1, 0)
         vr = v_prev[f_idx, r_next].reshape(-1) # V_{h-1}(F, R+1)
 
-        # スコアの分解（j に依存しない定数項を分離）:
-        #   score_j = (1-c) vr + a_j * [ pc_j (1 - (1-c) va) + (1-c)(va - vr) ]
+        # スコアの分解（j に依存しない定数項を分離、TOP_K = 1）:
+        #   score_j = a_j pc_j + (1-c)[a_j va + (1-a_j) vr]
+        #           = (1-c) vr + a_j [ pc_j + (1-c)(va - vr) ]
         # ここで a_j = mult * pu_j なので、状態ごとのスカラー
-        #   A = 1 - (1-c) va,  B = (1-c)(va - vr)
+        #   A = h(F)（選抜効果、既定 1）,  B = (1-c)(va - vr)
         # を用いて max_j pu_j (pc_j A + B) を評価すればよい
+        # （v3: 報酬は遷移と独立に計上されるため A に価値項が入らない）
         h_flat = h_grid[f_idx].reshape(-1)      # 現在状態の F に対する選抜効果
-        A = h_flat * (1.0 - (1.0 - c_flat) * va)   # (n_states,)
-        B = (1.0 - c_flat) * (va - vr)         # (n_states,)
+        A = h_flat                              # (n_states,)
+        B = (1.0 - c_flat) * (va - vr)          # (n_states,)
 
         g = np.zeros(n_states)
         for start in range(0, num_sets, VI_CHUNK_SIZE):
@@ -133,7 +138,7 @@ def compute_value_tables(
         g /= num_sets
 
         v_new = (1.0 - c_flat) * vr + mult_flat * g
-        V[h] = np.clip(v_new, 0.0, 1.0).reshape(n_f, n_r).astype(np.float32)
+        V[h] = np.maximum(v_new, 0.0).reshape(n_f, n_r).astype(np.float32)
 
         if verbose and h % 10 == 0:
             print(f"  価値反復: 残りホライズン {h}/{horizon}, "

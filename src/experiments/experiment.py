@@ -12,6 +12,9 @@ contrast-effect-jsai2026 と同一。以下の 3 手法を同一データ・同�
   - proposed : 本研究の状態適応的方策（価値反復による最適価値関数を使用、
                調整パラメータなし）
 
+定式化（論文 v3）: 離脱のみを吸収状態とし、マッチはユーザを除外しない。
+応募から成立までのリードタイムにより行動時点で成立可否を観測できないため、
+行動時点で P_comp（最終成立の期待値）ぶんのマッチを計上する。
 環境は decay_flag（動的/静的）と churn_strength（離反の強さ）で指定する。
 """
 
@@ -121,8 +124,9 @@ def select_items(method, user, user_items, step, gamma_val, decay_flag,
 
     greedy   : argmax P_user * P_comp
     surrogate: argmax P_user * P_comp + γ * P_user * Δ(s_u)   [西村+ 2025]
-    proposed : argmax { m_j + (1-c)(a_j - m_j) V(F+1, 0)
-                         + (1-c)(1 - a_j) V(F, R+1) }          [本研究]
+    proposed : argmax { a_j P_comp(j) + (1-c)[a_j V(F+1, 0)
+                         + (1 - a_j) V(F, R+1)] }              [本研究]
+               = argmax P_user(j) (P_comp(j) + (1-c) ΔV(s))
                （TOP_K = 1 ではベルマン方程式右辺の厳密な最大化と一致）
     """
     if not user_items:
@@ -154,8 +158,8 @@ def select_items(method, user, user_items, step, gamma_val, decay_flag,
 
         def key_fn(x):
             a = min(x.p_user * mult, 1.0)
-            m = a * x.p_comp * h_sel
-            return m + (1 - c) * (a - m) * va + (1 - c) * (1 - a) * vr
+            # v3: 報酬は行動時点で計上（遷移と独立）
+            return a * x.p_comp * h_sel + (1 - c) * (a * va + (1 - a) * vr)
 
     else:
         raise ValueError(f"未知の手法: {method}")
@@ -229,15 +233,15 @@ def run_single_trial(trial_params):
                     user.action_count += 1
                     user.last_action_step = 0
 
-                    # マッチング判定
+                    # マッチング判定（v3: 行動時点で最終成立を判定・計上し、
+                    # ユーザは離脱まで活動を継続する）
                     if random.random() < p_comp_adjusted:
                         step_score["match"] += 1
-                        user.finished = True
                 else:
                     user.last_action_step += 1
 
-            # 離反判定（本研究で追加）: マッチ成立しなかった場合のみ
-            if not user.finished and churn_strength > 0:
+            # 離反判定（v3: 唯一の吸収状態）
+            if churn_strength > 0:
                 if random.random() < churn_probability(f0, r0, churn_strength):
                     user.churned = True
                     trial_results["churned"] += 1
