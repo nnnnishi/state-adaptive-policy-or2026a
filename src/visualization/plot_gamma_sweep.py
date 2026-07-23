@@ -39,7 +39,7 @@ SURROGATE_COLOR = "#6E7B85"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--churn_strength", type=float, default=0.05,
+    parser.add_argument("--churn_strength", type=float, default=0.3,
                         help="対象環境の離反の強さ")
     parser.add_argument("--gammas", type=float, nargs="*", default=GAMMA_GRID)
     parser.add_argument("--output", default=None)
@@ -67,20 +67,25 @@ def main():
     ax.axhline(1.0, color="#808080", lw=1.2, ls=":")
 
     if prop_mean is not None:
-        ax.axhline(prop_mean, color=PROPOSED_COLOR, lw=2.5,
-                   label="状態適応的方策（γ 不要）")
+        ax.axhline(prop_mean, color=PROPOSED_COLOR, lw=2.5)
         ax.axhspan(prop_mean - prop_ci, prop_mean + prop_ci,
                    color=PROPOSED_COLOR, alpha=0.15)
+        ax.annotate(f"状態適応的方策（γ 不要）= {prop_mean:.3f}",
+                    xy=(0.02, prop_mean), xycoords=("axes fraction", "data"),
+                    xytext=(0, 6), textcoords="offset points",
+                    color=PROPOSED_COLOR, fontsize=12, fontweight="bold")
 
     if xs:
         ax.errorbar(xs, means, yerr=cis, fmt="o--", color=SURROGATE_COLOR,
-                    lw=2, ms=7, capsize=3, label="代理目的関数")
+                    lw=2, ms=7, capsize=3)
         ax.set_xscale("log")
+        ax.annotate("代理目的関数", xy=(xs[0], means[0]),
+                    xytext=(5, -18), textcoords="offset points",
+                    color=SURROGATE_COLOR, fontsize=12)
 
     ax.set_xlabel("将来価値の重み γ（代理目的関数のパラメータ）")
     ax.set_ylabel("マッチング数の対貪欲比")
     ax.set_title(f"動的環境・離反の強さ {args.churn_strength} での γ 感度")
-    ax.legend(loc="best", framealpha=0.9)
     ax.spines[["top", "right"]].set_visible(False)
 
     output = args.output or os.path.join(

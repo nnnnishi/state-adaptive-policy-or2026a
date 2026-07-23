@@ -6,7 +6,7 @@ import json
 import time
 import numpy as np
 
-REPO = "/tmp/exprepo"
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 sys.path.insert(0, os.path.join(REPO, "src"))
 
 from utils.utils import calculate_user_state_score
