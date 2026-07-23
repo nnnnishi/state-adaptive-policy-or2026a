@@ -26,7 +26,7 @@
 - **価値反復法**: 低次元の表形式状態 (F, R) に対する決定論的な解導出
 - **調整パラメータなし**: 先行研究の将来効果重み γ（λ）が不要
 - **離反モデル**: ユーザ状態に応じた離反確率 P_churn（本研究で追加）
-- **フェアな比較**: 3手法（貪欲 / 先行研究 / 提案）を同一データ・同一シードで比較
+- **フェアな比較**: 3手法（貪欲 / 代理目的関数 / 状態適応的方策）を同一データ・同一シードで比較
 
 ## 先行研究（JSAI 2026 版）との対応
 
@@ -59,12 +59,13 @@ state-adaptive-policy-or2026a/
 │   │   ├── value_iteration.py     # 価値反復（本研究のコア）
 │   │   └── smoothing.py           # 単調性制約による平滑化（論文 3.2 節）
 │   ├── experiments/
-│   │   └── experiment.py          # メイン実験スクリプト（3手法比較）
+│   │   ├── experiment.py          # メイン実験スクリプト（3手法比較）
+│   │   └── fast_run_slides.py     # ベクトル化した高速ランナー（発表用の一括実行）
 │   └── visualization/
-│       ├── visualize_user_state.py     # ユーザ状態の3D可視化（JSAI 版と同一）
-│       ├── visualize_value_function.py # V と ΔV の可視化
+│       ├── visualize_user_state.py     # 実験設定図（行動スコア s・継続確率 1−P_churn の3D）
+│       ├── visualize_value_function.py # ΔV ヒートマップ（V の3Dはオプション）
 │       ├── plot_ratio_vs_churn.py      # 離反強度×対貪欲比（発表メイン図・左）
-│       └── plot_gamma_sweep.py         # γ感度プロット（発表メイン図・右）
+│       └── plot_gamma_sweep.py         # γ感度プロット（発表メイン図・右、既定 churn 0.3）
 ├── data/                          # 生成された実験データ
 ├── results/                       # 実験結果・価値関数テーブル・プロット
 ├── requirements.txt
@@ -95,21 +96,22 @@ pip install -r requirements.txt
 cd src/data_processing && python create_data.py --output_dir ../../data && cd ../..
 
 # 2. 価値関数テーブルの事前計算（環境ごとに1回、データに依存しない）
-python src/planning/value_iteration.py --churn_strength 0.05
+python src/planning/value_iteration.py --churn_strength 0.3
 
 # 3. 実験の実行（同一環境で3手法を比較）
-python src/experiments/experiment.py --method greedy    --churn_strength 0.05
-python src/experiments/experiment.py --method proposed  --churn_strength 0.05
-python src/experiments/experiment.py --method surrogate --gamma_value 0.1 --churn_strength 0.05
+python src/experiments/experiment.py --method greedy    --churn_strength 0.3
+python src/experiments/experiment.py --method proposed  --churn_strength 0.3
+python src/experiments/experiment.py --method surrogate --gamma_value 0.1 --churn_strength 0.3
 
-# 静的環境（サニティチェック: 提案手法は貪欲と厳密に一致）
+# 静的環境（サニティチェック: 状態適応的方策は貪欲と厳密に一致）
 python src/experiments/experiment.py --method greedy   --no_decay_flag
 python src/experiments/experiment.py --method proposed --no_decay_flag
 
 # 4. 可視化
 python src/visualization/plot_ratio_vs_churn.py
-python src/visualization/plot_gamma_sweep.py --churn_strength 0.05
-python src/visualization/visualize_value_function.py --churn_strength 0.05
+python src/visualization/plot_gamma_sweep.py            # 既定で churn 0.3
+python src/visualization/visualize_value_function.py --churn_strength 0.3
+python src/visualization/visualize_user_state.py        # 実験設定スライドの3D図2枚
 ```
 
 ## 実験パラメータ
@@ -123,7 +125,7 @@ python src/visualization/visualize_value_function.py --churn_strength 0.05
 | EXPERIMENT_STEPS | 50 | シミュレーションステップ数（計画期間 Dmax） |
 | TRIAL_NUM | 100 | 実験試行回数 |
 | RANDOM_SEED | 42 | 再現性のための乱数シード |
-| CHURN_GRID | [0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5] | 離反の強さの掃引グリッド |
+| CHURN_GRID | [0, 0.05, 0.1, 0.2, 0.3, 0.5] | 離反の強さの掃引グリッド |
 | GAMMA_GRID | [0.01, 0.1, 1.0, 10.0] | 先行研究 γ の掃引グリッド |
 
 ## 数値実験の設定
@@ -155,7 +157,7 @@ python src/visualization/visualize_value_function.py --churn_strength 0.05
 
   Top-k = 1 ではベルマン方程式の厳密な最大化と一致し、調整パラメータを持たない。
   先行研究のスコア P_user·(P_comp + γ·Δ(s)) と厳密に同形であり、
-  γ·Δ(s) の席に状態依存の (1−P_churn)·ΔV(s) が入る。
+  γ·Δ(s) の位置に状態依存の (1−P_churn)·ΔV(s) が入る。
 
 ### フェアな比較のためのプロトコル
 
