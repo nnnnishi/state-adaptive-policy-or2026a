@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-離反の強さ × マッチ率の対貪欲比プロット（発表スライド左図）
+離反の強さ × マッチング数の対貪欲比プロット（発表スライド左図）
 
-- 提案手法（λ なし）1 本
-- 先行研究（代理目的関数）の γ 固定線を複数本
-- x = 0 は静的環境（提案手法は貪欲と厳密に一致し、比率 1.0）
+- 状態適応的方策（γ なし）1 本
+- 代理目的関数の γ 固定線を複数本
+- x = 0 は静的環境（状態適応的方策は貪欲と厳密に一致し、比率 1.0）
 """
 
 import os
@@ -82,13 +82,13 @@ def main():
             print(f"警告: surrogate γ={gamma} の結果が見つかりません")
             continue
         ax.errorbar(xs, means, yerr=cis, fmt=style, color=color, lw=1.8,
-                    ms=6, capsize=3, label=f"先行研究 γ={gamma}", zorder=2)
+                    ms=6, capsize=3, label=f"代理目的関数 γ={gamma}", zorder=2)
         plotted_any = True
 
     xs, means, cis = collect_series("proposed", CHURN_GRID)
     if len(xs) > 0:
         ax.errorbar(xs, means, yerr=cis, fmt="o-", color=PROPOSED_COLOR,
-                    lw=2.5, ms=8, capsize=3, label="提案手法（調整パラメータなし）",
+                    lw=2.5, ms=8, capsize=3, label="状態適応的方策（調整パラメータなし）",
                     zorder=5)
         plotted_any = True
 
@@ -97,7 +97,7 @@ def main():
         return 1
 
     ax.set_xlabel("離反の強さ（0 = 離反なし・静的環境）")
-    ax.set_ylabel("マッチ数の対貪欲比")
+    ax.set_ylabel("マッチング数の対貪欲比")
     ax.legend(loc="best", framealpha=0.9)
     ax.spines[["top", "right"]].set_visible(False)
 

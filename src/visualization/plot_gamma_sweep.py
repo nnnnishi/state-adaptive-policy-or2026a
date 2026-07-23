@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-γ（先行研究の将来効果重み）感度プロット（発表スライド右図）
+γ（代理目的関数の将来価値の重み）感度プロット（発表スライド右図）
 
-固定した環境（デフォルト: 動的 + 離反 0.05）で先行研究の γ を掃引し、
-γ を持たない提案手法を水平線として重ねる。
+固定した環境（デフォルト: 動的 + 離反 0.05）で代理目的関数の γ を掃引し、
+γ を持たない状態適応的方策を水平線として重ねる。
 """
 
 import os
@@ -68,17 +68,17 @@ def main():
 
     if prop_mean is not None:
         ax.axhline(prop_mean, color=PROPOSED_COLOR, lw=2.5,
-                   label="提案手法（γ 不要）")
+                   label="状態適応的方策（γ 不要）")
         ax.axhspan(prop_mean - prop_ci, prop_mean + prop_ci,
                    color=PROPOSED_COLOR, alpha=0.15)
 
     if xs:
         ax.errorbar(xs, means, yerr=cis, fmt="o--", color=SURROGATE_COLOR,
-                    lw=2, ms=7, capsize=3, label="先行研究 [西村+ 2025]")
+                    lw=2, ms=7, capsize=3, label="代理目的関数")
         ax.set_xscale("log")
 
-    ax.set_xlabel("将来効果の重視度 γ（先行研究のパラメータ）")
-    ax.set_ylabel("マッチ数の対貪欲比")
+    ax.set_xlabel("将来価値の重み γ（代理目的関数のパラメータ）")
+    ax.set_ylabel("マッチング数の対貪欲比")
     ax.set_title(f"動的環境・離反の強さ {args.churn_strength} での γ 感度")
     ax.legend(loc="best", framealpha=0.9)
     ax.spines[["top", "right"]].set_visible(False)
