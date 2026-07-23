@@ -43,6 +43,8 @@ def main():
                         help="表示する F の上限")
     parser.add_argument("--max_r", type=int, default=50,
                         help="表示する R の上限")
+    parser.add_argument("--with_value_3d", action="store_true",
+                        help="V の 3D サーフェスも出力する（既定は ΔV のみ）")
     args = parser.parse_args()
 
     path = get_or_compute_value_tables(args.decay_flag, args.churn_strength,
@@ -63,21 +65,23 @@ def main():
     sel = f"_sel{args.selection_strength}" if args.selection_strength > 0 else ""
     suffix = f"{env}_churn{args.churn_strength}{sel}"
 
-    # ---- V の 3D サーフェス ----
-    FF, RR = np.meshgrid(f_idx, r_idx, indexing="ij")
-    fig = plt.figure(figsize=(8, 6))
-    ax = fig.add_subplot(111, projection="3d")
-    ax.plot_surface(RR, FF, Vv, cmap="viridis", linewidth=0)
-    ax.set_xlabel("最終行動からの経過ステップ数 R")
-    ax.set_ylabel("累積行動数 F")
-    ax.set_zlabel("V(F, R)")
-    ax.set_title("最適価値関数 V（計画期間内のマッチ確率）")
-    out1 = os.path.join(PROJECT_ROOT, "results",
-                        f"value_function_3d_{suffix}.pdf")
-    fig.savefig(out1, bbox_inches="tight")
-    fig.savefig(out1.replace(".pdf", ".png"), dpi=200, bbox_inches="tight")
-    plt.close(fig)
-    print(f"保存: {out1}")
+    # ---- V の 3D サーフェス（オプション） ----
+    if args.with_value_3d:
+        FF, RR = np.meshgrid(f_idx, r_idx, indexing="ij")
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection="3d")
+        ax.plot_surface(RR, FF, Vv, cmap="viridis", linewidth=0)
+        ax.set_xlabel("最終行動からの経過ステップ数 R")
+        ax.set_ylabel("累積行動数 F")
+        ax.set_zlabel("V(F, R)")
+        ax.set_title("最適価値関数 V（計画期間内の累積マッチング期待数）")
+        out1 = os.path.join(PROJECT_ROOT, "results",
+                            f"value_function_3d_{suffix}.pdf")
+        fig.savefig(out1, bbox_inches="tight")
+        fig.savefig(out1.replace(".pdf", ".png"), dpi=200,
+                    bbox_inches="tight")
+        plt.close(fig)
+        print(f"保存: {out1}")
 
     # ---- ΔV のヒートマップ ----
     fig, ax = plt.subplots(figsize=(7.5, 5.5))
